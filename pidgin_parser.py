@@ -83,6 +83,18 @@ class ChatEntry():
         self.type = None
         self.content = ''
 
+    def text(self):
+        normal_date = '{:02d}.{:02d}.{:04d}'.format(
+                self.date.day, self.date.month, self.date.year)
+        if self.type == 'message':
+            template = u'({} {}) {}: {}'
+        else:
+            template = u'({} {}) {} установил(а) тему: {}'
+        return template.format(normal_date, self.time, self.author, self.content)
+
+    def html(self):
+        return self.original.replace('#16569E', '#A82F2F')
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         sys.exit('Usage: %s directory name' % sys.argv[0])
@@ -95,8 +107,9 @@ if __name__ == '__main__':
     files.sort()
     parser = ChatParser()
 
-    fo = codecs.open('huh.html', 'w', 'utf-8')
-    fo.write('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Conversation</title></head><body>')
+    fo_html = codecs.open('huh.html', 'w', 'utf-8')
+    fo_text = codecs.open('huh', 'w', 'utf-8')
+    fo_html.write('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Conversation</title></head><body>')
     for file_name in files:
         date = datetime.date(*map(int, file_name[:10].split('-')))
         fi = codecs.open(directory + '/' + file_name, 'r', 'utf-8')
@@ -104,8 +117,10 @@ if __name__ == '__main__':
         for line in fi_lines:
             parser.feed(line, date)
             if parser.chat_entry.type is not None:
-             fo.write('<b>' + parser.chat_entry.type + '</b><br>')
-             fo.write(parser.chat_entry.content.replace('\n', '<br>'))   
-             fo.write('<br>\n')
-    fo.write('</body></html>')
-    fo.close()
+                fo_html.write(parser.chat_entry.html().replace('\n', '<br>'))   
+                fo_text.write(parser.chat_entry.text())   
+                fo_html.write('<br>\n')
+                fo_text.write('\n')
+    fo_html.write('</body></html>')
+    fo_html.close()
+    fo_text.close()
