@@ -113,7 +113,7 @@ class ChatEntry(db):
             template = u'({} {}) {}: {}'
         else:
             template = u'({} {}) {} установил(а) тему: {}'
-        return template.format(normal_date, self.datetime.time,
+        return template.format(normal_date, self.datetime.time(),
                 self.author, self.content)
 
     def html(self):
@@ -131,11 +131,11 @@ if __name__ == '__main__':
     files = os.listdir(directory)
     files.sort()
     parser = ChatParser()
-    engine = create_engine('sqlite:///:memory:')
+    # engine = create_engine('sqlite:///:memory:')
     Session = sessionmaker(bind=engine)
     session = Session() 
     # db.metadata.create_all(engine) 
-
+    '''
     for file_name in files:
         date = datetime.date(*map(int, file_name[:10].split('-')))
         fi = codecs.open(directory + '/' + file_name, 'r', 'utf-8')
@@ -156,7 +156,6 @@ if __name__ == '__main__':
 
                 session.add(chat_entry)
         session.commit()
-
     fo_html = codecs.open('huh.html', 'w', 'utf-8')
     fo_text = codecs.open('huh', 'w', 'utf-8')
     fo_html.write('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Conversation</title></head><body>')
@@ -169,3 +168,26 @@ if __name__ == '__main__':
     fo_html.write('</body></html>')
     fo_html.close()
     fo_text.close()
+    '''
+    first_day = datetime.datetime(2014, 3, 31)
+    last_day = datetime.datetime(2015, 5, 24)
+    day = first_day
+    while True: 
+        entries = session.query(ChatEntry).filter(ChatEntry.datetime >= day,
+                ChatEntry.datetime < day + datetime.timedelta(days=1)).order_by(ChatEntry.datetime).all()
+        if entries:
+            fo_html = codecs.open('huh_html/{}_huh.html'.format(day.date()), 'w', 'utf-8')
+            fo_text = codecs.open('huh_text/{}_huh'.format(day.date()), 'w', 'utf-8')
+            fo_html.write('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Conversation at {}</title></head><body>'.format(day.date()))
+            # fo_html.write(('<b>{}</b><br>\n').format(chat_entry.type))   
+            for chat_entry in entries:
+                fo_html.write(chat_entry.html().replace('\n', '<br>'))   
+                fo_html.write('<br>\n')
+                fo_text.write(chat_entry.text())
+                fo_text.write('\n')
+            fo_html.write('</body></html>')
+            fo_html.close()
+            fo_text.close()
+        day += datetime.timedelta(days=1)
+        if day > last_day:
+            break
