@@ -13,6 +13,7 @@ from sqlalchemy import create_engine, Integer, DateTime, Text, String, Column
 name2codepoint['apos'] = 0x0027
 db = declarative_base()
 
+
 class ChatParser(HTMLParser):
     def feed(self, chat_entry):
         self.context = set()
@@ -36,7 +37,7 @@ class ChatParser(HTMLParser):
                 self.context.discard('size')
             else:
                 self.context.discard('color')
-                
+
     def handle_startendtag(self, tag, attrs):
         if tag == 'br':
             self.chat_entry.content += '\n'
@@ -47,15 +48,14 @@ class ChatParser(HTMLParser):
         if len(dt) == 2:
             self.chat_entry.date = datetime.date(*map(int, dt[0].split('.')[::-1]))
         self.chat_entry.datetime = datetime.datetime.combine(
-                self.chat_entry.date, self.chat_entry.time)
+            self.chat_entry.date, self.chat_entry.time)
 
     def handle_topic_or_whatever(self, data):
         pos = data.find(u'тему: ')
         if pos != -1:
             self.chat_entry.type = 'topic'
             self.chat_entry.author = data[:pos].strip()
-            self.chat_entry.content +=\
-                    data[pos + len(u'тему: '):]
+            self.chat_entry.content += data[pos + len(u'тему: '):]
         else:
             self.chat_entry.content += data
 
@@ -73,7 +73,7 @@ class ChatParser(HTMLParser):
             self.chat_entry.content += data.strip()
 
     def handle_entityref(self, name):
-        self.chat_entry.content +=  unichr(name2codepoint[str(name)])
+        self.chat_entry.content += unichr(name2codepoint[str(name)])
 
 
 class ChatEntry(db):
@@ -94,27 +94,28 @@ class ChatEntry(db):
 
     def __eq__(self, other):
         return type(self) == type(other) and\
-                self.datetime == other.datetime and\
-                self.author == other.author and\
-                self.content == other.content and\
-                self.type == other.type
-
+            self.datetime == other.datetime and\
+            self.author == other.author and\
+            self.content == other.content and\
+            self.type == other.type
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __repr__(self):
         return self.original
-    
+
     def text(self):
         normal_date = '{:02d}.{:02d}.{:04d}'.format(
-                self.datetime.day, self.datetime.month, self.datetime.year)
+            self.datetime.day, self.datetime.month, self.datetime.year)
         if self.type == 'message':
             template = u'({} {}) {}: {}'
         else:
             template = u'({} {}) {} установил(а) тему: {}'
-        return template.format(normal_date, self.datetime.time(),
-                self.author, self.content)
+        return template.format(normal_date,
+                               self.datetime.time(),
+                               self.author,
+                               self.content)
 
     def html(self):
         return self.original.replace('#16569E', '#A82F2F')
@@ -122,19 +123,19 @@ class ChatEntry(db):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        sys.exit('Usage: %s directory name' % sys.argv[0])
-
-    if not os.path.exists(sys.argv[1]):
-        sys.exit('ERROR: Directory %s was not found!' % sys.argv[1])
+        sys.exit('Usage: %s directory' % sys.argv[0])
 
     directory = sys.argv[1]
+    if not os.path.exists(directory):
+        sys.exit('ERROR: Directory %s was not found!' % directory)
+
     files = os.listdir(directory)
     files.sort()
     parser = ChatParser()
     # engine = create_engine('sqlite:///:memory:')
     Session = sessionmaker(bind=engine)
-    session = Session() 
-    # db.metadata.create_all(engine) 
+    session = Session()
+    # db.metadata.create_all(engine)
     '''
     for file_name in files:
         date = datetime.date(*map(int, file_name[:10].split('-')))
@@ -158,10 +159,12 @@ if __name__ == '__main__':
         session.commit()
     fo_html = codecs.open('huh.html', 'w', 'utf-8')
     fo_text = codecs.open('huh', 'w', 'utf-8')
-    fo_html.write('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Conversation</title></head><body>')
+    fo_html.write('<html><head><meta http-equiv="content-type"'
+                   'content="text/html; charset=UTF-8">'
+                   '<title>Conversation</title></head><body>')
     for chat_entry in session.query(ChatEntry).order_by(ChatEntry.datetime):
-        # fo_html.write(('<b>{}</b><br>\n').format(chat_entry.type))   
-        fo_html.write(chat_entry.html().replace('\n', '<br>'))   
+        # fo_html.write(('<b>{}</b><br>\n').format(chat_entry.type))
+        fo_html.write(chat_entry.html().replace('\n', '<br>'))
         fo_html.write('<br>\n')
         fo_text.write(chat_entry.text())
         fo_text.write('\n')
@@ -172,16 +175,19 @@ if __name__ == '__main__':
     first_day = datetime.datetime(2014, 3, 31)
     last_day = datetime.datetime(2015, 5, 24)
     day = first_day
-    while True: 
-        entries = session.query(ChatEntry).filter(ChatEntry.datetime >= day,
-                ChatEntry.datetime < day + datetime.timedelta(days=1)).order_by(ChatEntry.datetime).all()
+    while day <= last_day:
+        entries = session.query(ChatEntry).filter(
+            ChatEntry.datetime >= day,
+            ChatEntry.datetime < day + datetime.timedelta(days=1)).order_by(ChatEntry.datetime).all()
         if entries:
             fo_html = codecs.open('huh_html/{}_huh.html'.format(day.date()), 'w', 'utf-8')
             fo_text = codecs.open('huh_text/{}_huh'.format(day.date()), 'w', 'utf-8')
-            fo_html.write('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Conversation at {}</title></head><body>'.format(day.date()))
-            # fo_html.write(('<b>{}</b><br>\n').format(chat_entry.type))   
+            fo_html.write('<html><head><meta http-equiv="content-type"'
+                          'content="text/html; charset=UTF-8">'
+                          '<title>Conversation at {}</title></head><body>'.format(day.date()))
+            # fo_html.write(('<b>{}</b><br>\n').format(chat_entry.type))
             for chat_entry in entries:
-                fo_html.write(chat_entry.html().replace('\n', '<br>'))   
+                fo_html.write(chat_entry.html().replace('\n', '<br>'))
                 fo_html.write('<br>\n')
                 fo_text.write(chat_entry.text())
                 fo_text.write('\n')
@@ -189,5 +195,3 @@ if __name__ == '__main__':
             fo_html.close()
             fo_text.close()
         day += datetime.timedelta(days=1)
-        if day > last_day:
-            break
