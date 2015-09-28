@@ -3,15 +3,14 @@ import sys
 import os
 import codecs
 import datetime
-from string import whitespace
 from HTMLParser import HTMLParser
 from htmlentitydefs import name2codepoint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, Integer, DateTime, Text, String, Column
 
+
 name2codepoint['apos'] = 0x0027
-db = declarative_base()
 
 
 class ChatParser(HTMLParser):
@@ -76,6 +75,9 @@ class ChatParser(HTMLParser):
         self.chat_entry.content += unichr(name2codepoint[str(name)])
 
 
+db = declarative_base()
+
+
 class ChatEntry(db):
     __tablename__ = 'chat_entries'
 
@@ -118,7 +120,7 @@ class ChatEntry(db):
                                self.content)
 
     def html(self):
-        return self.original.replace('#16569E', '#A82F2F')
+        return self.original.replace('#16569E', '#A82F2F')  # to not highlight one's username
 
 
 if __name__ == '__main__':
@@ -132,21 +134,24 @@ if __name__ == '__main__':
     files = os.listdir(directory)
     files.sort()
     parser = ChatParser()
-    # engine = create_engine('sqlite:///:memory:')
+
+    engine = create_engine('sqlite:///:memory:')
     Session = sessionmaker(bind=engine)
     session = Session()
-    # db.metadata.create_all(engine)
-    '''
+    db.metadata.create_all(engine)
+
     for file_name in files:
         date = datetime.date(*map(int, file_name[:10].split('-')))
         fi = codecs.open(directory + '/' + file_name, 'r', 'utf-8')
         fi_lines = fi.read().split('<br/>\n')
         for line in fi_lines:
+            # remove title
             h3_pos = line.rfind('</h3>')
             if h3_pos != -1:
                 line = line[h3_pos + len('</h3>'):]
                 if line[0] == '\n':
                     line = line[1:]
+
             chat_entry = ChatEntry(line, date)
             parser.feed(chat_entry)
             if chat_entry.type is not None and\
@@ -160,10 +165,9 @@ if __name__ == '__main__':
     fo_html = codecs.open('history.html', 'w', 'utf-8')
     fo_text = codecs.open('history', 'w', 'utf-8')
     fo_html.write('<html><head><meta http-equiv="content-type"'
-                   'content="text/html; charset=UTF-8">'
-                   '<title>Conversation</title></head><body>')
+                  'content="text/html; charset=UTF-8">'
+                  '<title>Conversation</title></head><body>')
     for chat_entry in session.query(ChatEntry).order_by(ChatEntry.datetime):
-        # fo_html.write(('<b>{}</b><br>\n').format(chat_entry.type))
         fo_html.write(chat_entry.html().replace('\n', '<br>'))
         fo_html.write('<br>\n')
         fo_text.write(chat_entry.text())
@@ -171,7 +175,7 @@ if __name__ == '__main__':
     fo_html.write('</body></html>')
     fo_html.close()
     fo_text.close()
-    '''
+
     first_day = datetime.datetime(2014, 3, 31)
     last_day = datetime.datetime(2015, 5, 24)
     day = first_day
@@ -185,7 +189,6 @@ if __name__ == '__main__':
             fo_html.write('<html><head><meta http-equiv="content-type"'
                           'content="text/html; charset=UTF-8">'
                           '<title>Conversation at {}</title></head><body>'.format(day.date()))
-            # fo_html.write(('<b>{}</b><br>\n').format(chat_entry.type))
             for chat_entry in entries:
                 fo_html.write(chat_entry.html().replace('\n', '<br>'))
                 fo_html.write('<br>\n')
