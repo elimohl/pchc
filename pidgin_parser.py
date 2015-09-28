@@ -176,13 +176,17 @@ if __name__ == '__main__':
     fo_html.close()
     fo_text.close()
 
-    day = datetime.date(*map(int, files[0][:10].split('-')))
-    last_day = datetime.date(*map(int, files[-1][:10].split('-')))
+    day = datetime.datetime(*map(int, files[0][:10].split('-')))
+    last_day = datetime.datetime(*map(int, files[-1][:10].split('-')))
     while day <= last_day:
         entries = session.query(ChatEntry).filter(
             ChatEntry.datetime >= day,
             ChatEntry.datetime < day + datetime.timedelta(days=1)).order_by(ChatEntry.datetime).all()
         if entries:
+            if not os.path.exists('history_html'):
+                os.makedirs('history_html')
+            if not os.path.exists('history_text'):
+                os.makedirs('history_text')
             fo_html = codecs.open('history_html/{}_history.html'.format(day.date()), 'w', 'utf-8')
             fo_text = codecs.open('history_text/{}_history'.format(day.date()), 'w', 'utf-8')
             fo_html.write('<html><head><meta http-equiv="content-type"'
