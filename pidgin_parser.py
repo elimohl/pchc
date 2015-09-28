@@ -157,8 +157,8 @@ if __name__ == '__main__':
 
                 session.add(chat_entry)
         session.commit()
-    fo_html = codecs.open('huh.html', 'w', 'utf-8')
-    fo_text = codecs.open('huh', 'w', 'utf-8')
+    fo_html = codecs.open('history.html', 'w', 'utf-8')
+    fo_text = codecs.open('history', 'w', 'utf-8')
     fo_html.write('<html><head><meta http-equiv="content-type"'
                    'content="text/html; charset=UTF-8">'
                    '<title>Conversation</title></head><body>')
@@ -180,8 +180,8 @@ if __name__ == '__main__':
             ChatEntry.datetime >= day,
             ChatEntry.datetime < day + datetime.timedelta(days=1)).order_by(ChatEntry.datetime).all()
         if entries:
-            fo_html = codecs.open('huh_html/{}_huh.html'.format(day.date()), 'w', 'utf-8')
-            fo_text = codecs.open('huh_text/{}_huh'.format(day.date()), 'w', 'utf-8')
+            fo_html = codecs.open('history_html/{}_history.html'.format(day.date()), 'w', 'utf-8')
+            fo_text = codecs.open('history_text/{}_history'.format(day.date()), 'w', 'utf-8')
             fo_html.write('<html><head><meta http-equiv="content-type"'
                           'content="text/html; charset=UTF-8">'
                           '<title>Conversation at {}</title></head><body>'.format(day.date()))
