@@ -176,9 +176,8 @@ if __name__ == '__main__':
     fo_html.close()
     fo_text.close()
 
-    first_day = datetime.datetime(2014, 3, 31)
-    last_day = datetime.datetime(2015, 5, 24)
-    day = first_day
+    day = datetime.date(*map(int, files[0][:10].split('-')))
+    last_day = datetime.date(*map(int, files[-1][:10].split('-')))
     while day <= last_day:
         entries = session.query(ChatEntry).filter(
             ChatEntry.datetime >= day,
