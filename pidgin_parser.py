@@ -144,7 +144,6 @@ if __name__ == '__main__':
         sys.exit('ERROR: Directory %s was not found!' % directory)
 
     files = os.listdir(directory)
-    files.sort()
     parser = ChatParser()
     if args.all:
         args.html = True
