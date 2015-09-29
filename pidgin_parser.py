@@ -185,11 +185,13 @@ if __name__ == '__main__':
 
             chat_entry = ChatEntry(line, date)
             parser.feed(chat_entry)
+            # sometimes i have equivalent messages with little time distinction
             if chat_entry.type is not None and\
-                    session.query(ChatEntry).filter_by(
-                    type=chat_entry.type,
-                    datetime=chat_entry.datetime,
-                    author=chat_entry.author).first() is None:
+                    session.query(ChatEntry).filter(
+                    ChatEntry.type == chat_entry.type,
+                    ChatEntry.datetime >= chat_entry.datetime - datetime.timedelta(seconds=2),
+                    ChatEntry.datetime <= chat_entry.datetime + datetime.timedelta(seconds=2),
+                    ChatEntry.author == chat_entry.author).first() is None:
 
                 session.add(chat_entry)
         session.commit()
