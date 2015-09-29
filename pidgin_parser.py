@@ -12,6 +12,8 @@ import argparse
 
 
 name2codepoint['apos'] = 0x0027
+TOPIC_TEMPLATE = u'({date} {time}) {author} установил(а) тему: {text}'
+TOPIC_PREFIX_END = u'тему: '
 
 
 class ChatParser(HTMLParser):
@@ -51,11 +53,11 @@ class ChatParser(HTMLParser):
             self.chat_entry.date, self.chat_entry.time)
 
     def handle_topic_or_whatever(self, data):
-        pos = data.find(u'тему: ')
+        pos = data.find(TOPIC_PREFIX_END)
         if pos != -1:
             self.chat_entry.type = 'topic'
             self.chat_entry.author = data[:pos].strip()
-            self.chat_entry.content += data[pos + len(u'тему: '):]
+            self.chat_entry.content += data[pos + len(TOPIC_PREFIX_END):]
         else:
             self.chat_entry.content += data
 
@@ -112,13 +114,13 @@ class ChatEntry(db):
         normal_date = '{:02d}.{:02d}.{:04d}'.format(
             self.datetime.day, self.datetime.month, self.datetime.year)
         if self.type == 'message':
-            template = u'({} {}) {}: {}'
+            template = u'({date} {time}) {author}: {text}'
         else:
-            template = u'({} {}) {} установил(а) тему: {}'
-        return template.format(normal_date,
-                               self.datetime.time(),
-                               self.author,
-                               self.content)
+            template = TOPIC_TEMPLATE
+        return template.format(date=normal_date,
+                               time=self.datetime.time(),
+                               author=self.author,
+                               text=self.content)
 
     def html(self):
         return self.original.replace('#16569E', '#A82F2F')  # to not highlight one's username
