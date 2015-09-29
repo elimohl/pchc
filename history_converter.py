@@ -196,6 +196,7 @@ if __name__ == '__main__':
             fo_html.write('<br>\n')
         fo_html.write('</body></html>')
         fo_html.close()
+        session.close()
 
     if args.single_text:
         fo_text = codecs.open(name, 'w', 'utf-8')
@@ -203,6 +204,7 @@ if __name__ == '__main__':
             fo_text.write(chat_entry.text())
             fo_text.write('\n')
         fo_text.close()
+        session.close()
 
     if args.html or args.text:
         day = datetime.datetime(*map(int, files[0][:10].split('-')))
@@ -233,3 +235,4 @@ if __name__ == '__main__':
                         fo_text.write('\n')
                     fo_text.close()
             day += datetime.timedelta(days=1)
+        session.close()
