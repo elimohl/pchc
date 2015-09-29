@@ -97,16 +97,6 @@ class ChatEntry(db):
         self.original = original
         self.date = date
 
-    def __eq__(self, other):
-        return type(self) == type(other) and\
-            self.datetime == other.datetime and\
-            self.author == other.author and\
-            self.content == other.content and\
-            self.type == other.type
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
     def __repr__(self):
         return self.original
 
