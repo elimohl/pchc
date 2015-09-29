@@ -180,9 +180,11 @@ if __name__ == '__main__':
             if chat_entry.type is not None and\
                     session.query(ChatEntry).filter(
                     ChatEntry.type == chat_entry.type,
+                    ChatEntry.author == chat_entry.author,
+                    ChatEntry.content == chat_entry.content,
                     ChatEntry.datetime >= chat_entry.datetime - datetime.timedelta(seconds=2),
-                    ChatEntry.datetime <= chat_entry.datetime + datetime.timedelta(seconds=2),
-                    ChatEntry.author == chat_entry.author).first() is None:
+                    ChatEntry.datetime <= chat_entry.datetime + datetime.timedelta(seconds=2)
+                    ).first() is None:
 
                 session.add(chat_entry)
         session.commit()
