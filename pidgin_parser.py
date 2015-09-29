@@ -8,6 +8,7 @@ from htmlentitydefs import name2codepoint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, Integer, DateTime, Text, String, Column
+import argparse
 
 
 name2codepoint['apos'] = 0x0027
@@ -124,18 +125,47 @@ class ChatEntry(db):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        sys.exit('Usage: %s directory' % sys.argv[0])
+    argparser = argparse.ArgumentParser(
+        description="convert pidgin conference history to more convinient formats")
+    argparser.add_argument("dir", help="source directory")
+    argparser.add_argument("--text", help="store the result in plain text format, one file per day",
+                           action="store_true")
+    argparser.add_argument("--html", help="store the result in HTML format, one file per day", action="store_true")
+    argparser.add_argument("--single-text", help="store the result in a single text file", action="store_true")
+    argparser.add_argument("--single-html", help="store the result in a single html file", action="store_true")
+    argparser.add_argument("--db", help="store the result in a SQLite database", action="store_true")
+    argparser.add_argument("--all", help="store the result in all available formats", action="store_true")
+    argparser.add_argument("-n", "--name",
+                           help="set the name for the result (default name is created from source directory name)")
+    args = argparser.parse_args()
 
-    directory = sys.argv[1]
+    directory = args.dir
     if not os.path.exists(directory):
         sys.exit('ERROR: Directory %s was not found!' % directory)
 
     files = os.listdir(directory)
     files.sort()
     parser = ChatParser()
+    if args.all:
+        args.html = True
+        args.text = True
+        args.single_html = True
+        args.single_text = True
+        args.db = True
+    if not (args.all or args.html or args.text or args.single_html or args.single_text or args.db):
+        argparser.error('you should set at least one format option')
+    name = args.name
+    if not name:
+        at_pos = directory.find('@')
+        if at_pos != -1:
+            name = directory[:at_pos]
+        else:
+            name = directory + '_history'
 
-    engine = create_engine('sqlite:///:memory:')
+    if args.db:
+        engine = create_engine('sqlite:///{}.db'.format(name))
+    else:
+        engine = create_engine('sqlite:///:memory:')
     Session = sessionmaker(bind=engine)
     session = Session()
     db.metadata.create_all(engine)
@@ -162,19 +192,24 @@ if __name__ == '__main__':
 
                 session.add(chat_entry)
         session.commit()
-    fo_html = codecs.open('history.html', 'w', 'utf-8')
-    fo_text = codecs.open('history', 'w', 'utf-8')
-    fo_html.write('<html><head><meta http-equiv="content-type"'
-                  'content="text/html; charset=UTF-8">'
-                  '<title>Conversation</title></head><body>')
-    for chat_entry in session.query(ChatEntry).order_by(ChatEntry.datetime):
-        fo_html.write(chat_entry.html().replace('\n', '<br>'))
-        fo_html.write('<br>\n')
-        fo_text.write(chat_entry.text())
-        fo_text.write('\n')
-    fo_html.write('</body></html>')
-    fo_html.close()
-    fo_text.close()
+
+    if args.single_html:
+        fo_html = codecs.open('{}.html'.format(name), 'w', 'utf-8')
+        fo_html.write('<html><head><meta http-equiv="content-type"'
+                      'content="text/html; charset=UTF-8">'
+                      '<title>Conversation</title></head><body>')
+        for chat_entry in session.query(ChatEntry).order_by(ChatEntry.datetime):
+            fo_html.write(chat_entry.html().replace('\n', '<br>'))
+            fo_html.write('<br>\n')
+        fo_html.write('</body></html>')
+        fo_html.close()
+
+    if args.single_text:
+        fo_text = codecs.open(name, 'w', 'utf-8')
+        for chat_entry in session.query(ChatEntry).order_by(ChatEntry.datetime):
+            fo_text.write(chat_entry.text())
+            fo_text.write('\n')
+        fo_text.close()
 
     day = datetime.datetime(*map(int, files[0][:10].split('-')))
     last_day = datetime.datetime(*map(int, files[-1][:10].split('-')))
@@ -183,21 +218,24 @@ if __name__ == '__main__':
             ChatEntry.datetime >= day,
             ChatEntry.datetime < day + datetime.timedelta(days=1)).order_by(ChatEntry.datetime).all()
         if entries:
-            if not os.path.exists('history_html'):
-                os.makedirs('history_html')
-            if not os.path.exists('history_text'):
-                os.makedirs('history_text')
-            fo_html = codecs.open('history_html/{}_history.html'.format(day.date()), 'w', 'utf-8')
-            fo_text = codecs.open('history_text/{}_history'.format(day.date()), 'w', 'utf-8')
-            fo_html.write('<html><head><meta http-equiv="content-type"'
-                          'content="text/html; charset=UTF-8">'
-                          '<title>Conversation at {}</title></head><body>'.format(day.date()))
-            for chat_entry in entries:
-                fo_html.write(chat_entry.html().replace('\n', '<br>'))
-                fo_html.write('<br>\n')
-                fo_text.write(chat_entry.text())
-                fo_text.write('\n')
-            fo_html.write('</body></html>')
-            fo_html.close()
-            fo_text.close()
+            if args.html:
+                if not os.path.exists('{}_html'.format(name)):
+                    os.makedirs('{}_html'.format(name))
+                fo_html = codecs.open('{0}_html/{1}_{0}.html'.format(name, day.date()), 'w', 'utf-8')
+                fo_html.write('<html><head><meta http-equiv="content-type"'
+                              'content="text/html; charset=UTF-8">'
+                              '<title>Conversation at {}</title></head><body>'.format(day.date()))
+                for chat_entry in entries:
+                    fo_html.write(chat_entry.html().replace('\n', '<br>'))
+                    fo_html.write('<br>\n')
+                fo_html.write('</body></html>')
+                fo_html.close()
+            if args.text:
+                if not os.path.exists('{}_text'.format(name)):
+                    os.makedirs('{}_text'.format(name))
+                fo_text = codecs.open('{0}_text/{1}_{0}'.format(name, day.date()), 'w', 'utf-8')
+                for chat_entry in entries:
+                    fo_text.write(chat_entry.text())
+                    fo_text.write('\n')
+                fo_text.close()
         day += datetime.timedelta(days=1)
