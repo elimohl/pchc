@@ -212,31 +212,32 @@ if __name__ == '__main__':
             fo_text.write('\n')
         fo_text.close()
 
-    day = datetime.datetime(*map(int, files[0][:10].split('-')))
-    last_day = datetime.datetime(*map(int, files[-1][:10].split('-')))
-    while day <= last_day:
-        entries = session.query(ChatEntry).filter(
-            ChatEntry.datetime >= day,
-            ChatEntry.datetime < day + datetime.timedelta(days=1)).order_by(ChatEntry.datetime).all()
-        if entries:
-            if args.html:
-                if not os.path.exists('{}_html'.format(name)):
-                    os.makedirs('{}_html'.format(name))
-                fo_html = codecs.open('{0}_html/{1}_{0}.html'.format(name, day.date()), 'w', 'utf-8')
-                fo_html.write('<html><head><meta http-equiv="content-type"'
-                              'content="text/html; charset=UTF-8">'
-                              '<title>Conversation at {}</title></head><body>'.format(day.date()))
-                for chat_entry in entries:
-                    fo_html.write(chat_entry.html().replace('\n', '<br>'))
-                    fo_html.write('<br>\n')
-                fo_html.write('</body></html>')
-                fo_html.close()
-            if args.text:
-                if not os.path.exists('{}_text'.format(name)):
-                    os.makedirs('{}_text'.format(name))
-                fo_text = codecs.open('{0}_text/{1}_{0}'.format(name, day.date()), 'w', 'utf-8')
-                for chat_entry in entries:
-                    fo_text.write(chat_entry.text())
-                    fo_text.write('\n')
-                fo_text.close()
-        day += datetime.timedelta(days=1)
+    if args.html or args.text:
+        day = datetime.datetime(*map(int, files[0][:10].split('-')))
+        last_day = datetime.datetime(*map(int, files[-1][:10].split('-')))
+        while day <= last_day:
+            entries = session.query(ChatEntry).filter(
+                ChatEntry.datetime >= day,
+                ChatEntry.datetime < day + datetime.timedelta(days=1)).order_by(ChatEntry.datetime).all()
+            if entries:
+                if args.html:
+                    if not os.path.exists('{}_html'.format(name)):
+                        os.makedirs('{}_html'.format(name))
+                    fo_html = codecs.open('{0}_html/{1}_{0}.html'.format(name, day.date()), 'w', 'utf-8')
+                    fo_html.write('<html><head><meta http-equiv="content-type"'
+                                  'content="text/html; charset=UTF-8">'
+                                  '<title>Conversation at {}</title></head><body>'.format(day.date()))
+                    for chat_entry in entries:
+                        fo_html.write(chat_entry.html().replace('\n', '<br>'))
+                        fo_html.write('<br>\n')
+                    fo_html.write('</body></html>')
+                    fo_html.close()
+                if args.text:
+                    if not os.path.exists('{}_text'.format(name)):
+                        os.makedirs('{}_text'.format(name))
+                    fo_text = codecs.open('{0}_text/{1}_{0}'.format(name, day.date()), 'w', 'utf-8')
+                    for chat_entry in entries:
+                        fo_text.write(chat_entry.text())
+                        fo_text.write('\n')
+                    fo_text.close()
+            day += datetime.timedelta(days=1)
