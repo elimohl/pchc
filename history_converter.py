@@ -70,11 +70,12 @@ class ChatParser(HTMLParser):
         elif 'size' in self.context:
             self.handle_datetime(data)
         elif 'color' in self.context:
-            self.chat_entry.type = 'message'
             author = data.strip()
             if author[:3] == '***':
+                self.chat_entry.type = 'me-message'
                 self.chat_entry.author = author[3:]
             else:
+                self.chat_entry.type = 'message'
                 self.chat_entry.author = author[:-1]
         elif 'b' in self.context:
             self.handle_topic_or_whatever(data)
@@ -92,7 +93,7 @@ class ChatEntry(db):
     __tablename__ = 'chat_entries'
 
     id = Column(Integer, primary_key=True)
-    type = Column(String(7))
+    type = Column(String(10))
     author = Column(String(400))
     datetime = Column(DateTime)
     content = Column(Text)
@@ -112,6 +113,8 @@ class ChatEntry(db):
             self.datetime.day, self.datetime.month, self.datetime.year)
         if self.type == 'message':
             template = u'({date} {time}) {author}: {text}'
+        elif self.type == 'me-message':
+            template = u'({date} {time}) ***{author} {text}'
         else:
             template = TOPIC_TEMPLATE
         return template.format(date=normal_date,
