@@ -154,11 +154,12 @@ if __name__ == '__main__':
         argparser.error('you should set at least one format option')
     name = args.name
     if not name:
-        at_pos = directory.find('@')
+        name = directory.strip('/').split('/')[-1]
+        at_pos = name.find('@')
         if at_pos != -1:
-            name = directory[:at_pos]
+            name = name[:at_pos]
         else:
-            name = directory + '_history'
+            name = name + '_history'
 
     if args.db:
         engine = create_engine('sqlite:///{}.db'.format(name))
