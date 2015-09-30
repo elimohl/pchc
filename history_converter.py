@@ -59,7 +59,7 @@ class ChatParser(HTMLParser):
             self.chat_entry.type = 'topic'
             author_end_pos = data[:pos].rstrip().rfind(' ')
             if author_end_pos != -1:
-                self.chat_entry.author = data[:author_end_pos].strip()
+                self.chat_entry.author = data[1:author_end_pos]
             self.chat_entry.content += data[pos + len(TOPIC_PREFIX_END):]
         else:
             self.chat_entry.content += data
