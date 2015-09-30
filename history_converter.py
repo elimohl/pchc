@@ -71,7 +71,11 @@ class ChatParser(HTMLParser):
             self.handle_datetime(data)
         elif 'color' in self.context:
             self.chat_entry.type = 'message'
-            self.chat_entry.author = data.strip()[:-1]
+            author = data.strip()
+            if author[:3] == '***':
+                self.chat_entry.author = author[3:]
+            else:
+                self.chat_entry.author = author[:-1]
         elif 'b' in self.context:
             self.handle_topic_or_whatever(data)
         else:
