@@ -106,7 +106,7 @@ class ChatEntry(db):
         self.date = date
 
     def __repr__(self):
-        return self.original
+        return self.original.encode('utf8')
 
     def text(self):
         normal_date = '{:02d}.{:02d}.{:04d}'.format(
