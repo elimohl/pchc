@@ -4,8 +4,8 @@ import sys
 import os
 import codecs
 import datetime
-from HTMLParser import HTMLParser
-from htmlentitydefs import name2codepoint
+from html.parser import HTMLParser
+from html.entities import name2codepoint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, Integer, DateTime, Text, String, Column
@@ -13,8 +13,8 @@ import argparse
 
 
 name2codepoint['apos'] = 0x0027
-TOPIC_TEMPLATE = u'({date} {time}) {author} установил(а) тему: {text}'
-TOPIC_PREFIX_END = u'тему: '
+TOPIC_TEMPLATE = '({date} {time}) {author} установил(а) тему: {text}'
+TOPIC_PREFIX_END = 'тему: '
 
 
 class ChatParser(HTMLParser):
@@ -47,9 +47,9 @@ class ChatParser(HTMLParser):
 
     def handle_datetime(self, data):
         dt = data[1:-1].split()
-        self.chat_entry.time = datetime.time(*map(int, dt[-1].split(':')))
+        self.chat_entry.time = datetime.time(*list(map(int, dt[-1].split(':'))))
         if len(dt) == 2:
-            self.chat_entry.date = datetime.date(*map(int, dt[0].split('.')[::-1]))
+            self.chat_entry.date = datetime.date(*list(map(int, dt[0].split('.')[::-1])))
         self.chat_entry.datetime = datetime.datetime.combine(
             self.chat_entry.date, self.chat_entry.time)
 
@@ -83,7 +83,7 @@ class ChatParser(HTMLParser):
             self.chat_entry.content += data.strip()
 
     def handle_entityref(self, name):
-        self.chat_entry.content += unichr(name2codepoint[str(name)])
+        self.chat_entry.content += chr(name2codepoint[str(name)])
 
 
 db = declarative_base()
@@ -112,9 +112,9 @@ class ChatEntry(db):
         normal_date = '{:02d}.{:02d}.{:04d}'.format(
             self.datetime.day, self.datetime.month, self.datetime.year)
         if self.type == 'message':
-            template = u'({date} {time}) {author}: {text}'
+            template = '({date} {time}) {author}: {text}'
         elif self.type == 'me-message':
-            template = u'({date} {time}) ***{author} {text}'
+            template = '({date} {time}) ***{author} {text}'
         else:
             template = TOPIC_TEMPLATE
         return template.format(date=normal_date,
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     db.metadata.create_all(engine)
 
     for file_name in files:
-        date = datetime.date(*map(int, file_name[:10].split('-')))
+        date = datetime.date(*list(map(int, file_name[:10].split('-'))))
         fi = codecs.open(directory + '/' + file_name, 'r', 'utf-8')
         fi_lines = fi.read().split('<br/>\n')
         for line in fi_lines:
@@ -220,8 +220,8 @@ if __name__ == '__main__':
         session.close()
 
     if args.html or args.text:
-        day = datetime.datetime(*map(int, files[0][:10].split('-')))
-        last_day = datetime.datetime(*map(int, files[-1][:10].split('-')))
+        day = datetime.datetime(*list(map(int, files[0][:10].split('-'))))
+        last_day = datetime.datetime(*list(map(int, files[-1][:10].split('-'))))
         while day <= last_day:
             entries = session.query(ChatEntry).filter(
                 ChatEntry.datetime >= day,
