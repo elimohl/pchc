@@ -1,15 +1,16 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import sys
+
+
+import argparse
 import os
 import codecs
 import datetime
 from html.parser import HTMLParser
 from html.entities import name2codepoint
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, Integer, DateTime, Text, String, Column
-import argparse
 
 
 name2codepoint['apos'] = 0x0027
@@ -128,33 +129,26 @@ class ChatEntry(db):
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser(
-        description="convert pidgin conference history to more convinient formats")
-    argparser.add_argument("dir", help="source directory")
-    argparser.add_argument("--text", help="store the result in plain text format, one file per day",
-                           action="store_true")
-    argparser.add_argument("--html", help="store the result in HTML format, one file per day", action="store_true")
-    argparser.add_argument("--single-text", help="store the result in a single text file", action="store_true")
-    argparser.add_argument("--single-html", help="store the result in a single html file", action="store_true")
-    argparser.add_argument("--db", help="store the result in a SQLite database", action="store_true")
-    argparser.add_argument("--all", help="store the result in all available formats", action="store_true")
-    argparser.add_argument("-n", "--name",
-                           help="set the name for the result (default name is created from source directory name)")
+        description='convert pidgin conference history to more convinient formats')
+    argparser.add_argument('dir', help='source directory')
+    argparser.add_argument(
+            'format',
+            choices=['html', 'single-html', 'single-text', 'text', 'db', 'all'],
+            help='How to store the result.'
+                 '"single" means that the result will be stored in one text/html file'
+                 'otherwise there will be one file per day',
+            )
+    argparser.add_argument(
+            '-n',
+            '--name',
+            help='set the name for the result (default name is created from source directory name)',
+            )
     args = argparser.parse_args()
 
     directory = args.dir
-    if not os.path.exists(directory):
-        sys.exit('ERROR: Directory %s was not found!' % directory)
-
     files = os.listdir(directory)
+
     parser = ChatParser()
-    if args.all:
-        args.html = True
-        args.text = True
-        args.single_html = True
-        args.single_text = True
-        args.db = True
-    if not (args.all or args.html or args.text or args.single_html or args.single_text or args.db):
-        argparser.error('you should set at least one format option')
     name = args.name
     if not name:
         name = directory.strip('/').split('/')[-1]
@@ -164,7 +158,7 @@ if __name__ == '__main__':
         else:
             name = name + '_history'
 
-    if args.db:
+    if args.format in ('db', 'all'):
         engine = create_engine('sqlite:///{}.db'.format(name))
     else:
         engine = create_engine('sqlite:///:memory:')
@@ -199,7 +193,7 @@ if __name__ == '__main__':
                 session.add(chat_entry)
         session.commit()
 
-    if args.single_html:
+    if args.format in ('single-html', 'all'):
         fo_html = codecs.open('{}.html'.format(name), 'w', 'utf-8')
         fo_html.write('<html><head><meta http-equiv="content-type"'
                       'content="text/html; charset=UTF-8">'
@@ -211,7 +205,7 @@ if __name__ == '__main__':
         fo_html.close()
         session.close()
 
-    if args.single_text:
+    if args.format in ('single-text', 'all'):
         fo_text = codecs.open(name, 'w', 'utf-8')
         for chat_entry in session.query(ChatEntry).order_by(ChatEntry.datetime):
             fo_text.write(chat_entry.text())
@@ -219,7 +213,7 @@ if __name__ == '__main__':
         fo_text.close()
         session.close()
 
-    if args.html or args.text:
+    if args.format in ('text', 'html', 'all'):
         day = datetime.datetime(*list(map(int, files[0][:10].split('-'))))
         last_day = datetime.datetime(*list(map(int, files[-1][:10].split('-'))))
         while day <= last_day:
@@ -227,7 +221,7 @@ if __name__ == '__main__':
                 ChatEntry.datetime >= day,
                 ChatEntry.datetime < day + datetime.timedelta(days=1)).order_by(ChatEntry.datetime).all()
             if entries:
-                if args.html:
+                if args.format in ('html', 'all'):
                     if not os.path.exists('{}_html'.format(name)):
                         os.makedirs('{}_html'.format(name))
                     fo_html = codecs.open('{0}_html/{1}_{0}.html'.format(name, day.date()), 'w', 'utf-8')
@@ -239,7 +233,7 @@ if __name__ == '__main__':
                         fo_html.write('<br>\n')
                     fo_html.write('</body></html>')
                     fo_html.close()
-                if args.text:
+                if args.format in ('text', 'all'):
                     if not os.path.exists('{}_text'.format(name)):
                         os.makedirs('{}_text'.format(name))
                     fo_text = codecs.open('{0}_text/{1}_{0}'.format(name, day.date()), 'w', 'utf-8')
